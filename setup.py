@@ -32,14 +32,14 @@ from setuptools import setup, find_packages
 
 setup(
     # replace "mydatabase" by the name of your database
-    name='pyannote.db.mydatabase',
+    name='pyannote.db.dihard2',
 
     # replace "MyDatabase" by the name of your database
-    description="MyDatabase plugin for pyannote-database",
+    description="Dihard2 plugin for pyannote-database",
 
     # replace with your information
-    author='Hervé Bredin',
-    author_email='bredin@limsi.fr',
+    author='Hadrien Titeux',
+    author_email='hadrien.titeux@ens.fr',
 
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
