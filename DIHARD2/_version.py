@@ -45,7 +45,7 @@ def get_config():
     # replace mydatabase the same way you did in "setup.py"
     cfg.parentdir_prefix = "pyannote-db-dihard2"
     # replace MyDatabase the same way you did in "setup.py"
-    cfg.versionfile_source = "MyDatabase/_version.py"
+    cfg.versionfile_source = "DIHARD2/_version.py"
     cfg.verbose = False
     return cfg
 

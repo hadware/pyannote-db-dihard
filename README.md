@@ -1,14 +1,49 @@
-# pyannote.database plugin
+# DIHARD2 challenge plugin for pyannote.database
 
-This repository provides a template for creating your own [`pyannote.database`](http://github.com/pyannote/pyannote-database) plugin.
+## Installation
 
-1. Fork this repository.
-2. Edit `MyDatabase/__init__.py`
-3. Edit `setup.py`, `setup.cfg` and `.gitattributes`
-4. Edit lines 45 to 48 in `MyDatabase/_version.py`
-5. Rename `MyDatabase` directory to the name of your database (e.g. to [`Etape`](http://github.com/pyannote/pyannote-db-etape) or [`REPERE`](http://github.com/pyannote/pyannote-db-repere))
-6. Commit and tag your changes using [`semantic versioning`](http://semver.org)
-7. Run `pip install -e .` and enjoy!
+```bash
+$ pip install pyannote.db.dihard2  # install from pip, or
+$ pip install -e .  # install a local copy
+```
 
+Tell `pyannote` where to look for DIHARD2 audio files. 
 
-In case your database is public and you want to share, I'd be happy to integrate your plugin in `pyannote`: a [pull request](https://help.github.com/articles/about-pull-requests/) to this repository should help us get started...
+```bash
+$ cat ~/.pyannote/db.yml
+DIHARD2: /path/to/DIHARD2/{uri}.wav
+```
+
+## Speaker diarization protocol
+
+Protocol is initialized as follows:
+
+```python
+>>> from pyannote.database import get_protocol, FileFinder
+>>> preprocessors = {'audio': FileFinder()}
+>>> protocol = get_protocol('DIHARD2.SpeakerDiarization.All',
+...                         preprocessors=preprocessors)
+```
+
+### Test / Evaluation
+
+```python
+>>> # initialize evaluation metric
+>>> from pyannote.metrics.diarization import DiarizationErrorRate
+>>> metric = DiarizationErrorRate()
+>>>
+>>> # iterate over each file of the test set
+>>> for test_file in protocol.test():
+...
+...     # process test file
+...     audio = test_file['audio']
+...     hypothesis = process_file(audio)
+...
+...     # evaluate hypothesis
+...     reference = test_file['annotation']
+...     uem = test_file['annotated']
+...     metric(reference, hypothesis, uem=uem)
+>>>
+>>> # report results
+>>> metric.report(display=True)
+```

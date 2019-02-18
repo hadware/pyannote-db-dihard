@@ -31,13 +31,10 @@ import versioneer
 from setuptools import setup, find_packages
 
 setup(
-    # replace "mydatabase" by the name of your database
     name='pyannote.db.dihard2',
 
-    # replace "MyDatabase" by the name of your database
-    description="Dihard2 plugin for pyannote-database",
+    description="DIHARD2 challenge plugin for pyannote-database",
 
-    # replace with your information
     author='Hadrien Titeux',
     author_email='hadrien.titeux@ens.fr',
 
@@ -45,9 +42,8 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
 
-    # replace "MyDatabase" by the new name of MyDatabase directory
     package_data={
-        'MyDatabase': [
+        'DIHARD2': [
             'data/*',
         ],
     },
@@ -68,9 +64,8 @@ setup(
         "Topic :: Scientific/Engineering"
     ],
 
-    # replace MyDatabase by the name of your database (using CamelCase)
     entry_points="""
         [pyannote.database.databases]
-        MyDatabase=MyDatabase:MyDatabase
+        DIHARD2=DIHARD2.__init__:DIHARD2
     """
 )

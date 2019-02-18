@@ -31,45 +31,51 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-
-import os.path as op
+import os
+from pyannote.core import Segment, Timeline, Annotation
 from pyannote.database import Database
 from pyannote.database.protocol import SpeakerDiarizationProtocol
+from pandas import read_table
+from pathlib import Path
 
 # this protocol defines a speaker diarization protocol: as such, a few methods
 # needs to be defined: trn_iter, dev_iter, and tst_iter.
 
 
 class Full(SpeakerDiarizationProtocol):
-    """My first speaker diarization protocol """
+    """DIHARD2 speaker diarization protocol """
 
     def trn_iter(self):
 
         # absolute path to 'data' directory where annotations are stored
-        data_dir = op.join(op.dirname(op.realpath(__file__)), 'data')
+        data_dir = Path(__file__).parent / 'data'
 
         # in this example, we assume annotations are distributed in MDTM format.
         # this is obviously not mandatory but pyannote.parser conveniently
         # provides a built-in parser for MDTM files...
-        annotations = MDTMParser().read(
-            op.join(data_dir, 'protocol1.train.mdtm'))
-
+        annotations = data_dir / f'protocol1.train.mdtm'
+        names = ['uri', 'channel', 'start', 'duration',
+                 'NA1', 'NA2', 'gender', 'speaker']
+        annotations = read_table(annotations, delim_whitespace=True, names=names)
+        AnnotationGroups = annotations.groupby(by='uri')
         # iterate over each file in training set
-        for uri in sorted(annotations.uris):
+        for uri, annotations in AnnotationGroups:
+            annotation = Annotation(uri=uri)
+            channel = None
+            file_duration = None
+            for t, turn in enumerate(annotations.itertuples()):
+                segment = Segment(start=turn.start,
+                                  end=turn.start + turn.duration)
+                file_duration = Segment(start=0, end=turn.start + turn.duration)
+                annotation[segment, t] = turn.speaker
 
-            # get annotations as pyannote.core.Annotation instance
-            annotation = annotations(uri)
-
-            # `trn_iter` (as well as `dev_iter` and `tst_iter`) are expected
-            # to yield dictionary with the following fields:
-            yield {
-                # name of the database class
+            current_file = {
                 'database': 'DIHARD2',
-                # unique file identifier
                 'uri': uri,
-                # reference as pyannote.core.Annotation instance
-                'annotation': annotation
-            }
+                'channel': channel,
+                'annotated': Timeline(uri=uri, segments=[file_duration]),
+                'annotation': annotation}
+            yield current_file
 
             # optionally, an 'annotated' field can be added, whose value is
             # a pyannote.core.Timeline instance containing the set of regions
@@ -99,7 +105,7 @@ class DIHARD2(Database):
     """MyDatabase database"""
 
     def __init__(self, preprocessors={}, **kwargs):
-        super().__init__(preprocessors=preprocessors, **kwargs)
+        super(DIHARD2, self).__init__(preprocessors=preprocessors, **kwargs)
 
         # register the first protocol: it will be known as
         # MyDatabase.SpeakerDiarization.MyFirstProtocol
