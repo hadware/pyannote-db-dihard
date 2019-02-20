@@ -41,9 +41,8 @@ from pathlib import Path
 # this protocol defines a speaker diarization protocol: as such, a few methods
 # needs to be defined: trn_iter, dev_iter, and tst_iter.
 
-
-class Full(SpeakerDiarizationProtocol):
-    """DIHARD2 speaker diarization protocol """
+class DIHARDProtocol(SpeakerDiarizationProtocol):
+    """DIHARD speaker diarization protocol """
 
     def trn_iter(self):
 
@@ -70,7 +69,7 @@ class Full(SpeakerDiarizationProtocol):
                 annotation[segment, t] = turn.speaker
 
             current_file = {
-                'database': 'DIHARD2',
+                'database': 'DIHARD',
                 'uri': uri,
                 'channel': channel,
                 'annotated': Timeline(uri=uri, segments=[file_duration]),
@@ -86,7 +85,6 @@ class Full(SpeakerDiarizationProtocol):
             # for instance. whenever possible, please provide the 'annotated'
             # field even if it trivially contains segment [0, file_duration].
 
-
     def dev_iter(self):
         # here, you should do the same as above, but for the development set
         for _ in []:
@@ -100,14 +98,13 @@ class Full(SpeakerDiarizationProtocol):
 # this is where we define each protocol for this database.
 # without this, `pyannote.database.get_protocol` won't be able to find them...
 
-
-class DIHARD2(Database):
+class DIHARD(Database):
     """MyDatabase database"""
 
     def __init__(self, preprocessors={}, **kwargs):
-        super(DIHARD2, self).__init__(preprocessors=preprocessors, **kwargs)
+        super(DIHARD, self).__init__(preprocessors=preprocessors, **kwargs)
 
         # register the first protocol: it will be known as
         # MyDatabase.SpeakerDiarization.MyFirstProtocol
         self.register_protocol(
-            'SpeakerDiarization', 'All', Full)
+            'SpeakerDiarization', 'All', DIHARDProtocol)

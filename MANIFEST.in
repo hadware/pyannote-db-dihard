@@ -1,2 +1,2 @@
 include versioneer.py
-include DIHARD2/_version.py
+include DIHARD/_version.py

@@ -1,17 +1,19 @@
-# DIHARD2 challenge plugin for pyannote.database
+# DIHARD and DIHARD2 challenge plugin for pyannote.database
 
 ## Installation
 
 ```bash
-$ pip install pyannote.db.dihard2  # install from pip, or
+$ pip install pyannote.db.dihard  # install from pip, or
 $ pip install -e .  # install a local copy
 ```
 
-Tell `pyannote` where to look for DIHARD2 audio files. 
+Tell `pyannote` where to look for DIHARD and DIHARD2 audio files. 
 
 ```bash
 $ cat ~/.pyannote/db.yml
-DIHARD2: /path/to/DIHARD2/{uri}.wav
+DIHARD: 
+  - /path/to/DIHARD/{uri}.wav
+  - /path/to/DIHARD2/{uri}.wav
 ```
 
 ## Speaker diarization protocol
@@ -21,7 +23,7 @@ Protocol is initialized as follows:
 ```python
 >>> from pyannote.database import get_protocol, FileFinder
 >>> preprocessors = {'audio': FileFinder()}
->>> protocol = get_protocol('DIHARD2.SpeakerDiarization.All',
+>>> protocol = get_protocol('DIHARD.SpeakerDiarization.All',
 ...                         preprocessors=preprocessors)
 ```
 

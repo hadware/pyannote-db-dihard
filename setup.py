@@ -31,9 +31,9 @@ import versioneer
 from setuptools import setup, find_packages
 
 setup(
-    name='pyannote.db.dihard2',
+    name='pyannote.db.dihard',
 
-    description="DIHARD2 challenge plugin for pyannote-database",
+    description="DIHARD and DIHARD2 challenges plugin for pyannote-database",
 
     author='Hadrien Titeux',
     author_email='hadrien.titeux@ens.fr',
@@ -43,7 +43,7 @@ setup(
     packages=find_packages(),
 
     package_data={
-        'DIHARD2': [
+        'DIHARD': [
             'data/*',
         ],
     },
@@ -66,6 +66,6 @@ setup(
 
     entry_points="""
         [pyannote.database.databases]
-        DIHARD2=DIHARD2.__init__:DIHARD2
+        DIHARD=DIHARD:DIHARD
     """
 )
