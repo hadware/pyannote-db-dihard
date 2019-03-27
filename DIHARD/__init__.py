@@ -26,85 +26,103 @@
 # AUTHORS
 # Hervé BREDIN - http://herve.niderb.fr
 
+from typing import Dict
 
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
 
-import os
 from pyannote.core import Segment, Timeline, Annotation
 from pyannote.database import Database
 from pyannote.database.protocol import SpeakerDiarizationProtocol
-from pandas import read_table
+from pyannote.parser.timeline.uem import UEMParser
+import pandas as pd
 from pathlib import Path
+import yaml
 
 # this protocol defines a speaker diarization protocol: as such, a few methods
 # needs to be defined: trn_iter, dev_iter, and tst_iter.
 
-class DIHARDProtocol(SpeakerDiarizationProtocol):
+class DIHARD2SingleChannelProtocol(SpeakerDiarizationProtocol):
     """DIHARD speaker diarization protocol """
 
-    def trn_iter(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Pretty hacky: using the path specified for the
+        #  DIHARD2 flacs in the db.yml
+        with open("~/.pyannote/db.yml") as db_file:
+            db_config = yaml.load(db_file)
+        DIHARD2_path = Path(db_config["DIHARD2"])
+        self.single_channel_path = DIHARD2_path.parent.parent
+        self.scoring_regions: Dict[str, Timeline] = dict()
+        self.recording_type: Dict[str, str] = dict()
 
-        # absolute path to 'data' directory where annotations are stored
-        data_dir = Path(__file__).parent / 'data'
+    def load_RTTM_files(self):
+        rttm_path = self.single_channel_path / Path("rttm")
+        return list(rttm_path.iterdir())
 
-        # in this example, we assume annotations are distributed in MDTM format.
-        # this is obviously not mandatory but pyannote.parser conveniently
-        # provides a built-in parser for MDTM files...
-        annotations = data_dir / f'protocol1.train.mdtm'
-        names = ['uri', 'channel', 'start', 'duration',
-                 'NA1', 'NA2', 'gender', 'speaker']
-        annotations = read_table(annotations, delim_whitespace=True, names=names)
-        AnnotationGroups = annotations.groupby(by='uri')
-        # iterate over each file in training set
-        for uri, annotations in AnnotationGroups:
-            annotation = Annotation(uri=uri)
-            channel = None
-            file_duration = None
-            for t, turn in enumerate(annotations.itertuples()):
-                segment = Segment(start=turn.start,
-                                  end=turn.start + turn.duration)
-                file_duration = Segment(start=0, end=turn.start + turn.duration)
-                annotation[segment, t] = turn.speaker
+    def load_UEM_files(self):
+        uem_path = self.single_channel_path / Path("uem")
+        return list(uem_path.iterdir())
 
-            current_file = {
-                'database': 'DIHARD',
-                'uri': uri,
-                'channel': channel,
-                'annotated': Timeline(uri=uri, segments=[file_duration]),
-                'annotation': annotation}
-            yield current_file
-
-            # optionally, an 'annotated' field can be added, whose value is
-            # a pyannote.core.Timeline instance containing the set of regions
-            # that were actually annotated (e.g. some files might only be
-            # partially annotated).
-
-            # this field can be used later to only evaluate those regions,
-            # for instance. whenever possible, please provide the 'annotated'
-            # field even if it trivially contains segment [0, file_duration].
+    def parse_scoring_regions(self):
+        for uem_filepath in self.load_UEM_files():
+            # we're going to use subfiles, not the "all.uem", as they
+            # can also tell us what is the type of the audio recording
+            if uem_filepath.name == "all.uem":
+                continue
+            files_type = uem_filepath.stem
+            parser = UEMParser()
+            timelines = parser.read(uem_filepath)
+            for uri in timelines.uris:
+                self.scoring_regions[uri] = timelines(uri=uri)
+                self.recording_type[uri] = files_type
 
     def dev_iter(self):
-        # here, you should do the same as above, but for the development set
+
+        # column names for RTTM annotations
+        names = ["type", 'uri', 'channel', 'start', 'duration', 'ortography',
+                 "speaker_type", "speaker", "confidence", "signal_lookahead"]
+        for annot_filepath in self.load_RTTM_files():
+            annot_uri = annot_filepath.stem
+            annot_df = pd.read_csv(annot_filepath, delim_whitespace=True,
+                                   names=names)
+            annotation = Annotation(uri=annot_uri)
+            for idx, row in annot_df.iterrows():
+                segment = Segment(start=row['start'],
+                                  end=row['start'] + row['duration'])
+                annotation[segment, idx] = row["speaker"]
+
+            current_file = {
+                'database': 'DIHARD2',
+                'uri': annot_uri,
+                'channel': 1,
+                'annotated': self.scoring_regions[annot_uri],
+                'annotation': annotation,
+                'recording_type': self.recording_type[annot_uri]}
+            yield current_file
+
+    def trn_iter(self):
         for _ in []:
             yield
 
     def tst_iter(self):
-        # here, you should do the same as above, but for the test set
         for _ in []:
             yield
 
-# this is where we define each protocol for this database.
-# without this, `pyannote.database.get_protocol` won't be able to find them...
+
+class DIHARD2MultiChannelProtocol(SpeakerDiarizationProtocol):
+    pass
+
 
 class DIHARD(Database):
     """MyDatabase database"""
 
     def __init__(self, preprocessors={}, **kwargs):
         super(DIHARD, self).__init__(preprocessors=preprocessors, **kwargs)
-
-        # register the first protocol: it will be known as
-        # MyDatabase.SpeakerDiarization.MyFirstProtocol
         self.register_protocol(
-            'SpeakerDiarization', 'All', DIHARDProtocol)
+            'SpeakerDiarization', 'SingleChannel', DIHARD2SingleChannelProtocol)
+
+        self.register_protocol(
+            'SpeakerDiarization', 'MultiChannel', DIHARD2MultiChannelProtocol)
